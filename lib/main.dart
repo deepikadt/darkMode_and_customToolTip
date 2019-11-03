@@ -1,469 +1,216 @@
 import 'package:flutter/material.dart';
-import 'package:aeyrium_sensor/aeyrium_sensor.dart';
-import 'dart:async';
-import 'dart:math' show sin, pi;
 
-import 'package:flutter/services.dart';
-import 'package:sample_ui/theme_change.dart';
+import 'bloc/theme_bloc.dart';
 
+///This project shows how to add theme in flutter application using streams.
+///Also i have made a custom tooltip.
 void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
+final bloc = ThemeBloc();
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smooth Rotation',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        backgroundColor: Colors.grey[300],
-        accentColor: Colors.blueAccent[700],
-        secondaryHeaderColor: Colors.grey[200],
-      ),
-      home: SmoothRotation(
-        child: Scaffold(
-          body: SmoothRotationBuilder.rotate(
-            child: SmoothRotationBuilder.scale(
-              child: SamplePage(),
-            ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.red,
-            onPressed: () {
-              print("move");
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ThemeApp()),
-              );
-            },
-            child: SmoothRotationBuilder.rotate(
-              child: Icon(Icons.edit),
-            ),
-          ),
-        ),
+    return StreamBuilder(
+      initialData: false,
+      stream: bloc.darkThemeEnabled,
+      builder: (context, snapshot) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Flutter Demo',
+        theme: snapshot.data ? ThemeData.dark() : ThemeData.light(),
+        home: SafeArea(child: MyPage(snapshot.data)),
       ),
     );
   }
 }
 
-class SmoothRotation extends StatefulWidget {
-  const SmoothRotation({
-    Key key,
-    @required this.child,
-  }) : super(key: key);
+class MyPage extends StatefulWidget {
+  final bool darkThemeEnabled;
 
-  final Widget child;
-
-  static double of(BuildContext context) {
-    _SmoothRotationScope scope =
-        context.inheritFromWidgetOfExactType(_SmoothRotationScope);
-    return scope?.angle;
-  }
+  MyPage(this.darkThemeEnabled);
 
   @override
-  _SmoothRotationState createState() => _SmoothRotationState();
+  _MyPageState createState() => _MyPageState();
 }
 
-class _SmoothRotationState extends State<SmoothRotation> {
-  StreamSubscription<SensorEvent> _sub;
-  double _rotationAngle;
+class _MyPageState extends State<MyPage> {
+  OverlayEntry _overlayEntry;
+  GlobalKey _keyScaffold = GlobalKey();
+  GlobalKey _keyRow = GlobalKey();
+  GlobalKey _keyText = GlobalKey();
+  GlobalKey _keyIcon = GlobalKey();
+  GlobalKey _keyAppBar = GlobalKey();
 
-  @override
-  void initState() {
-    super.initState();
-    _onPortrait();
-    _rotationAngle = 0.0;
-    _sub = AeyriumSensor.sensorEvents.listen(_onRotationSensor);
-  }
+  OverlayEntry _createOverlayEntry() {
+    //scaffold
+    RenderBox renderBoxScaffold =
+        _keyScaffold.currentContext.findRenderObject() as RenderBox;
+    var scaffoldSize = renderBoxScaffold.size;
+    var scaffoldPosition = renderBoxScaffold.localToGlobal(Offset.zero);
+    //icon in icon button
+    RenderBox renderBoxIcon =
+        _keyIcon.currentContext.findRenderObject() as RenderBox;
+    var iconSize = renderBoxIcon.size;
+    var iconPosition = renderBoxIcon.localToGlobal(Offset.zero);
+    //text before icon
+    RenderBox renderBoxText =
+        _keyText.currentContext.findRenderObject() as RenderBox;
+    var textSize = renderBoxText.size;
+    var textPosition = renderBoxText.localToGlobal(Offset.zero);
+    //row in which text and icon present
+    RenderBox renderBoxRow =
+        _keyRow.currentContext.findRenderObject() as RenderBox;
+    var rowSize = renderBoxRow.size;
+    var rowPosition = renderBoxRow.localToGlobal(Offset.zero);
+    //app bar
+    RenderBox renderBoxAppBar =
+        _keyAppBar.currentContext.findRenderObject() as RenderBox;
+    var appbarSize = renderBoxAppBar.size;
+    var appbarPosition = renderBoxAppBar.localToGlobal(Offset.zero);
 
-  @override
-  void dispose() {
-    _sub.cancel();
-    super.dispose();
-  }
+    double position =
+        scaffoldSize.width - textSize.width - iconSize.width - 18.0;
 
-  void _onRotationSensor(SensorEvent event) {
-    double newAngle = (-event.roll * 1000).truncate() / 1000.0;
-    if ((_rotationAngle - newAngle).abs() > 0.01) {
-      setState(() => _rotationAngle = newAngle);
-    }
+    return OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: scaffoldSize.height / 2 - rowSize.height / 2,
+        width: scaffoldSize.width,
+        child: _show(position),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: <Widget>[
-        _SmoothRotationScope(
-          angle: _rotationAngle,
-          child: widget.child,
-        ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Material(
-            type: MaterialType.transparency,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                FlatButton(onPressed: _onPortrait, child: Text('Portrait')),
-                FlatButton(onPressed: _onLandscape, child: Text('Landscape')),
-              ],
-            ),
+    return Scaffold(
+      key: _keyScaffold,
+      appBar: AppBar(
+        key: _keyAppBar,
+        title: Text("Home Page"),
+        actions: <Widget>[
+          Switch(
+            value: widget.darkThemeEnabled,
+            onChanged: bloc.changeTheme,
+            activeColor: Colors.blue,
+            inactiveTrackColor: Colors.white54,
+            inactiveThumbColor: Colors.white,
+          )
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Row(
+            key: _keyRow,
+            children: <Widget>[
+              Text(
+                "Why are you asking this?",
+                key: _keyText,
+              ),
+              IconButton(
+                key: _keyIcon,
+                onPressed: () {
+                  //showing custom tooltip
+                  showDialog(
+                      context: _keyScaffold.currentContext,
+                      barrierDismissible: false,
+                      builder: (context) => Container());
+                  _overlayEntry = _createOverlayEntry();
+                  Overlay.of(context).insert(_overlayEntry);
+                },
+                icon: Icon(Icons.info),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  void _onPortrait() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-  }
-
-  void _onLandscape() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-    ]);
-  }
-}
-
-class _SmoothRotationScope extends InheritedWidget {
-  final double angle;
-
-  const _SmoothRotationScope({
-    Key key,
-    @required this.angle,
-    @required Widget child,
-  }) : super(
-          key: key,
-          child: child,
-        );
-
-  @override
-  bool updateShouldNotify(_SmoothRotationScope old) => old.angle != angle;
-}
-
-typedef Widget RotationBuilder(
-    BuildContext context, Widget child, double angle);
-
-class SmoothRotationBuilder extends StatefulWidget {
-  static const _rad90 = 90.0 * pi / 180.0;
-
-  const SmoothRotationBuilder.rotate({
-    Key key,
-    @required this.child,
-  })  : builder = rotationBuilder,
-        super(key: key);
-
-  const SmoothRotationBuilder.scale({
-    Key key,
-    @required this.child,
-  })  : builder = scaleBuilder,
-        super(key: key);
-
-  const SmoothRotationBuilder({
-    Key key,
-    @required this.builder,
-    @required this.child,
-  }) : super(key: key);
-
-  final RotationBuilder builder;
-  final Widget child;
-
-  @override
-  _SmoothRotationBuilderState createState() => _SmoothRotationBuilderState();
-
-  static Widget rotationBuilder(
-      BuildContext context, Widget child, double angle) {
-    return Transform.rotate(angle: angle, child: child);
-  }
-
-  static Widget scaleBuilder(BuildContext context, Widget child, double angle) {
-    final media = MediaQuery.of(context);
-    final width = (media.size.width * sin(_rad90 - angle).abs()) +
-        (media.size.height * sin(angle).abs());
-    final height = (media.size.height * sin(_rad90 - angle).abs()) +
-        (media.size.width * sin(angle).abs());
-    return OverflowBox(
-      minWidth: width,
-      maxWidth: width,
-      minHeight: height,
-      maxHeight: height,
-      child: child,
-    );
-  }
-}
-
-class _SmoothRotationBuilderState extends State<SmoothRotationBuilder> {
-  @override
-  Widget build(BuildContext context) =>
-      widget.builder(context, widget.child, SmoothRotation.of(context));
-}
-
-class SamplePage extends StatefulWidget {
-  @override
-  _SamplePageState createState() => _SamplePageState();
-}
-
-class _SamplePageState extends State<SamplePage>
-    with SingleTickerProviderStateMixin {
-  TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return NestedScrollView(
-      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-        return <Widget>[
-          SliverToBoxAdapter(
-            child: Column(
-              verticalDirection: VerticalDirection.down,
-              children: <Widget>[
-                Container(
-                  height: 250.0,
-                  color: theme.primaryColor,
-                  child: Center(
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: Image.asset('assets/logo.png'),
+  Widget _show(double arrowPosition) => Material(
+        type: MaterialType.transparency,
+        elevation: 4.0,
+        child: Container(
+          height: 170.0,
+          width: double.infinity,
+          color: Colors.transparent,
+          child: Stack(
+            alignment: Alignment.topRight,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Container(
+                  height: 145.0,
+                  width: double.infinity,
+                  decoration: BoxDecoration(color: Colors.white),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              Text(
+                                "Why are we asking this?",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16),
+                              ),
+                              IconButton(
+                                icon: SizedBox(
+                                  child: Icon(
+                                    Icons.close,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  _overlayEntry.remove();
+                                  Navigator.maybePop(
+                                      _keyScaffold.currentContext);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(
+                            height: 2,
+                          ),
+                          Text(
+                            "The General Data Protection Regulation (GDPR) has certain requirements for where the data of European Union citizens are stored.",
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                Container(
-                  color: theme.backgroundColor,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        heightFactor: 0.5,
-                        child: SmoothRotationBuilder(
-                          builder: (BuildContext context, Widget child,
-                              double angle) {
-                            final value = ((angle * (180 / pi)) - 90.0) / 180.0;
-                            //print('angle $angle $value');
-                            return Align(
-                              alignment: Alignment(value.abs() - 0.5, 0.0),
-                              child: child,
-                            );
-                          },
-                          child: Material(
-                            type: MaterialType.circle,
-                            color: theme.backgroundColor,
-                            elevation: 4.0,
-                            child: CircleAvatar(
-                              // backgroundImage: AssetImage('assets/profile.jpg'),
-                              radius: 48.0,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.0),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Text('Miroslav Vitula',
-                            style: theme.textTheme.headline),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            Icon(
-                              Icons.camera_alt,
-                              size: 12.0,
-                            ),
-                            SizedBox(width: 6.0),
-                            Text('Motion designer'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SliverAppBar(
-            pinned: true,
-            floating: true,
-            forceElevated: true,
-            elevation: 2.0,
-            backgroundColor: theme.backgroundColor,
-            flexibleSpace: Builder(
-              builder: (BuildContext context) {
-                final mediaQuery = MediaQuery.of(context);
-                final tabMinWidth = mediaQuery.size.shortestSide * 0.25;
-                return Padding(
-                  padding: mediaQuery.padding + const EdgeInsets.only(top: 7.0),
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: theme.textTheme.body1.color,
-                    indicatorColor: theme.primaryColor,
-                    indicatorWeight: 3.0,
-                    isScrollable: true,
-                    tabs: <Widget>[
-                      _buildTab('ABOUT', tabMinWidth),
-                      _buildTab('POSTS', tabMinWidth),
-                      _buildTab('COLLECTIONS', tabMinWidth),
-                      _buildTab('PHOTOS', tabMinWidth),
-                      _buildTab('YOUTUBE', tabMinWidth),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ];
-      },
-      body: MediaQuery.removePadding(
-        context: context,
-        removeTop: true,
-        child: TabBarView(
-          controller: _tabController,
-          children: <Widget>[
-            _buildList(context),
-            _buildList(context),
-            _buildList(context),
-            _buildList(context),
-            _buildList(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildList(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: ListView.builder(
-        itemBuilder: (BuildContext context, int index) {
-          if (index == 0) {
-            return Category(
-              icon: Icons.check,
-              title: 'Pinned',
-            );
-          }
-          return Post();
-        },
-      ),
-    );
-  }
-
-  Tab _buildTab(String text, double tabMinWidth) {
-    return Tab(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minWidth: tabMinWidth,
-        ),
-        child: Center(
-          child: Text(text),
-        ),
-      ),
-    );
-  }
-}
-
-class Category extends StatelessWidget {
-  final IconData icon;
-  final String title;
-
-  const Category({
-    Key key,
-    @required this.icon,
-    @required this.title,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      color: theme.secondaryHeaderColor,
-      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Row(
-        children: <Widget>[
-          Icon(icon),
-          SizedBox(width: 12.0),
-          Text(
-            title,
-            style: theme.textTheme.body2,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class Post extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              CircleAvatar(
-                backgroundColor: theme.secondaryHeaderColor,
-                // backgroundImage: AssetImage('assets/profile.jpg'),
-                radius: 16.0,
               ),
-              SizedBox(width: 12.0),
-              Text(
-                'Miroslav Vitula',
-                style: theme.textTheme.body2.copyWith(fontSize: 12.0),
-              ),
-              Icon(
-                Icons.chevron_right,
-                size: 14.0,
-                color: theme.accentColor,
-              ),
-              Text(
-                'Material Design',
-                style: theme.textTheme.body2.copyWith(
-                  fontSize: 12.0,
-                  color: theme.accentColor,
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
-            child: Text(
-                'Some 3D stuff I\'ve been workin on in AE.\nLooking all fresh!'),
-          ),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AspectRatio(
-                  aspectRatio: 1.5,
-                  child: Container(
-                    color: Colors.grey[300],
-                  ),
-                ),
-              ),
-              SizedBox(width: 12.0),
-              Expanded(
-                child: AspectRatio(
-                  aspectRatio: 1.5,
-                  child: Container(
-                    color: Colors.grey[300],
+              Positioned(
+                right: arrowPosition,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 133.0),
+                  child: Icon(
+                    Icons.arrow_drop_down,
+                    color: Colors.white,
+                    size: 40,
                   ),
                 ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
+
+
+   
+
 }
+
