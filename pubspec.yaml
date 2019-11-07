@@ -25,6 +25,8 @@ dependencies:
   cupertino_icons: ^0.1.2
   aeyrium_sensor:
     git: https://github.com/slightfoot/aeyrium-sensor
+  
+  
 
 dev_dependencies:
   flutter_test:

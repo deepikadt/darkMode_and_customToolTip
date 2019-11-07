@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'bloc/theme_bloc.dart';
 
@@ -39,6 +40,8 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
+
+  
   OverlayEntry _overlayEntry;
   GlobalKey _keyScaffold = GlobalKey();
   GlobalKey _keyRow = GlobalKey();
@@ -74,7 +77,7 @@ class _MyPageState extends State<MyPage> {
     var appbarPosition = renderBoxAppBar.localToGlobal(Offset.zero);
 
     double position =
-        scaffoldSize.width - textSize.width - iconSize.width - 18.0;
+        scaffoldSize.width - textSize.width - iconSize.width - 20.0;
 
     return OverlayEntry(
       builder: (context) => Positioned(
@@ -119,9 +122,20 @@ class _MyPageState extends State<MyPage> {
                   showDialog(
                       context: _keyScaffold.currentContext,
                       barrierDismissible: false,
-                      builder: (context) => Container());
+                      builder: (context) => WillPopScope(
+                          onWillPop: () async {
+                            _overlayEntry.remove();
+                            return true;
+                          },
+                          child: Container()));
                   _overlayEntry = _createOverlayEntry();
                   Overlay.of(context).insert(_overlayEntry);
+                },
+                icon: Icon(Icons.info),
+              ),
+              IconButton(
+                onPressed: () {
+                  //use a tooltip here
                 },
                 icon: Icon(Icons.info),
               ),
@@ -174,8 +188,7 @@ class _MyPageState extends State<MyPage> {
                                 ),
                                 onPressed: () {
                                   _overlayEntry.remove();
-                                  Navigator.maybePop(
-                                      _keyScaffold.currentContext);
+                                  Navigator.pop(_keyScaffold.currentContext);
                                 },
                               ),
                             ],
@@ -208,9 +221,4 @@ class _MyPageState extends State<MyPage> {
           ),
         ),
       );
-
-
-   
-
 }
-
