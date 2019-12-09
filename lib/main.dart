@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:sample_ui/carousel.dart' as prefix0;
+import 'package:sample_ui/custom_options.dart';
 
 import 'bloc/theme_bloc.dart';
+import 'tutorial.dart';
 
 ///This project shows how to add theme in flutter application using streams.
 ///Also i have made a custom tooltip.
@@ -40,8 +43,6 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
-
-  
   OverlayEntry _overlayEntry;
   GlobalKey _keyScaffold = GlobalKey();
   GlobalKey _keyRow = GlobalKey();
@@ -105,42 +106,65 @@ class _MyPageState extends State<MyPage> {
           )
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            key: _keyRow,
-            children: <Widget>[
-              Text(
-                "Why are you asking this?",
-                key: _keyText,
+      body: SingleChildScrollView(
+              child: Column(
+          children: <Widget>[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  key: _keyRow,
+                  children: <Widget>[
+                    Text(
+                      "Why are you asking this?",
+                      key: _keyText,
+                    ),
+                    IconButton(
+                      key: _keyIcon,
+                      onPressed: () {
+                        //showing custom tooltip
+                        showDialog(
+                            context: _keyScaffold.currentContext,
+                            barrierDismissible: false,
+                            builder: (context) => WillPopScope(
+                                onWillPop: () async {
+                                  _overlayEntry.remove();
+                                  return true;
+                                },
+                                child: Container()));
+                        _overlayEntry = _createOverlayEntry();
+                        Overlay.of(context).insert(_overlayEntry);
+                      },
+                      icon: Icon(Icons.info),
+                    ),
+                  
+                  ],
+                ),
               ),
-              IconButton(
-                key: _keyIcon,
-                onPressed: () {
-                  //showing custom tooltip
-                  showDialog(
-                      context: _keyScaffold.currentContext,
-                      barrierDismissible: false,
-                      builder: (context) => WillPopScope(
-                          onWillPop: () async {
-                            _overlayEntry.remove();
-                            return true;
-                          },
-                          child: Container()));
-                  _overlayEntry = _createOverlayEntry();
-                  Overlay.of(context).insert(_overlayEntry);
-                },
-                icon: Icon(Icons.info),
-              ),
-              IconButton(
-                onPressed: () {
-                  //use a tooltip here
-                },
-                icon: Icon(Icons.info),
-              ),
-            ],
-          ),
+            ),
+              RaisedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => Tutorial()));
+                      },
+                      child: Text("tutorial screen"),
+                    ),
+
+                      RaisedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => prefix0.CarouselDemo()));
+                      },
+                      child: Text("Carousel example"),
+                    ),
+                    RaisedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) =>CustomOptions()));
+                      },
+                      child: Text("Custom options"),
+                    ),
+          ],
         ),
       ),
     );
